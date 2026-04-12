@@ -1,0 +1,78 @@
+{
+  "common": {
+    "name": "household-intelligence",
+    "version": "0.1.0",
+    "news": {
+      "0.1.0": {
+        "en": "Initial release",
+        "de": "Erste Version"
+      }
+    },
+    "title": "Household Intelligence",
+    "titleLang": {
+      "en": "Household Intelligence (AI Smart Home)",
+      "de": "Household Intelligence (KI Smart Home)"
+    },
+    "desc": {
+      "en": "AI-powered analysis, anomaly detection and automation suggestions for your smart home using local LLM (Ollama) or OpenAI.",
+      "de": "KI-gestützte Analyse, Anomalie-Erkennung und Automationsvorschläge für dein Smart Home – mit lokalem LLM (Ollama) oder OpenAI."
+    },
+    "authors": ["ioBroker Community"],
+    "keywords": ["AI", "LLM", "Ollama", "smarthome", "energy", "automation"],
+    "license": "MIT",
+    "type": "general",
+    "main": "main.js",
+    "icon": "admin/household-intelligence.png",
+    "enabled": true,
+    "mode": "daemon",
+    "platform": "Javascript/Node.js",
+    "loglevel": "info",
+    "readme": "https://github.com/YOUR_USER/ioBroker.household-intelligence/blob/main/README.md",
+    "messagebox": true,
+    "allowInit": true,
+    "compact": false,
+    "connectionType": "local",
+    "dataSource": "poll",
+    "adminUI": {
+      "config": "json"
+    }
+  },
+  "native": {
+    "llmBackend": "ollama",
+    "ollamaHost": "http://localhost:11434",
+    "ollamaModel": "llama3",
+    "openaiApiKey": "",
+    "openaiModel": "gpt-4o-mini",
+    "maxTokens": 1500,
+    "timeoutSeconds": 60,
+    "analysisIntervalHours": 6,
+    "notifyTelegram": false,
+    "notifyPushover": false,
+    "notifyEmail": false,
+    "telegramUser": "",
+    "emailTo": "",
+    "datapoints": []
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": { "name": "Information" },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": "LLM Connected",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
+}
