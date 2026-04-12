@@ -8,15 +8,7 @@
   },
   "homepage": "https://github.com/bjoernsto/ioBroker.household-intelligence",
   "license": "MIT",
-  "keywords": [
-    "ioBroker",
-    "smarthome",
-    "AI",
-    "LLM",
-    "Ollama",
-    "energy",
-    "automation"
-  ],
+  "keywords": ["ioBroker", "smarthome", "AI", "LLM", "Ollama", "energy", "automation"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bjoernsto/ioBroker.household-intelligence.git"
@@ -28,6 +20,12 @@
     "@iobroker/adapter-core": "^3.0.0"
   },
   "main": "main.js",
+  "files": [
+    "admin/",
+    "lib/",
+    "main.js",
+    "io-package.json"
+  ],
   "scripts": {
     "test": "echo \"No tests yet\""
   }
