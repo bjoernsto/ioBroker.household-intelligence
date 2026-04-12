@@ -1,102 +1,47 @@
-'use strict';
+# Contributing
 
-const assert = require('assert');
+Beiträge sind herzlich willkommen! 🎉
 
-// Mock logger
-const mockLog = {
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    debug: () => {},
-};
+## Entwicklungsumgebung einrichten
 
-describe('LLMClient', () => {
-    const LLMClient = require('../lib/llmClient');
+```bash
+git clone https://github.com/YOUR_USER/ioBroker.household-intelligence
+cd ioBroker.household-intelligence
+npm install
+```
 
-    it('should instantiate with ollama config', () => {
-        const client = new LLMClient({
-            llmBackend: 'ollama',
-            ollamaHost: 'http://localhost:11434',
-            ollamaModel: 'llama3',
-        }, mockLog);
-        assert.strictEqual(client.backend, 'ollama');
-        assert.strictEqual(client.ollamaModel, 'llama3');
-    });
+## Tests ausführen
 
-    it('should instantiate with openai config', () => {
-        const client = new LLMClient({
-            llmBackend: 'openai',
-            openaiApiKey: 'sk-test',
-            openaiModel: 'gpt-4o-mini',
-        }, mockLog);
-        assert.strictEqual(client.backend, 'openai');
-        assert.strictEqual(client.openaiModel, 'gpt-4o-mini');
-    });
+```bash
+npm test
+```
 
-    it('should fail connection test when no openai key', async () => {
-        const client = new LLMClient({
-            llmBackend: 'openai',
-            openaiApiKey: '',
-        }, mockLog);
-        const result = await client.testConnection();
-        assert.strictEqual(result, false);
-    });
-});
+## Versionierung
 
-describe('Analyzer', () => {
-    const Analyzer = require('../lib/analyzer');
+Bitte bei jeder Änderung **beide** Dateien anpassen:
+- `package.json` → `version`
+- `io-package.json` → `common.version` und `common.news`
 
-    const mockLLM = {
-        complete: async () => JSON.stringify({
-            summary: 'Test summary',
-            savingsTips: ['Tip 1'],
-            automationSuggestions: [],
-            insights: [],
-        }),
-    };
+Wir folgen [Semantic Versioning](https://semver.org/):
+- `PATCH` (0.1.**x**) – Bugfixes
+- `MINOR` (0.**x**.0) – Neue Features, rückwärtskompatibel
+- `MAJOR` (**x**.0.0) – Breaking Changes
 
-    it('should return analysis result', async () => {
-        const analyzer = new Analyzer(mockLLM, mockLog);
-        const snapshot = {
-            timestamp: new Date().toISOString(),
-            currentValues: {
-                'test.0.power': { value: 100, unit: 'W', label: 'Test', category: 'power' },
-            },
-            history: {},
-            deviceGroups: {},
-            context: { time: '12:00', date: '12.04.2026', dayOfWeek: 'Samstag', season: 'Frühling' },
-        };
-        const result = await analyzer.analyzeHousehold(snapshot);
-        assert.ok(result.summary);
-        assert.ok(Array.isArray(result.savingsTips));
-    });
+## Pull Request erstellen
 
-    it('should return empty anomaly array when no baseline', async () => {
-        const analyzer = new Analyzer(mockLLM, mockLog);
-        const snapshot = {
-            currentValues: {},
-            history: {},
-            context: { time: '12:00', dayOfWeek: 'Samstag' },
-        };
-        const result = await analyzer.detectAnomalies(snapshot);
-        assert.ok(Array.isArray(result));
-    });
-});
+1. Fork erstellen
+2. Feature-Branch: `git checkout -b feature/mein-feature`
+3. Änderungen committen: `git commit -m 'feat: mein neues Feature'`
+4. Branch pushen: `git push origin feature/mein-feature`
+5. Pull Request öffnen
 
-describe('DataCollector', () => {
-    it('should record state changes and cap history', () => {
-        // Minimal mock adapter
-        const mockAdapter = {
-            config: { datapoints: [] },
-            log: mockLog,
-            subscribeForeignStatesAsync: async () => {},
-        };
-        const DataCollector = require('../lib/dataCollector');
-        const dc = new DataCollector(mockAdapter);
+## Commit-Konventionen
 
-        for (let i = 0; i < 300; i++) {
-            dc.recordStateChange('test.0.val', { ts: Date.now(), val: i });
-        }
-        assert.ok(dc.history['test.0.val'].length <= dc.maxHistoryEntries);
-    });
-});
+```
+feat: neue Funktion
+fix: Bugfix
+docs: Dokumentation
+refactor: Code-Umbau ohne neue Funktion
+test: Tests hinzufügen/anpassen
+chore: Build, CI, Abhängigkeiten
+```

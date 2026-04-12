@@ -1,96 +1,53 @@
 'use strict';
 
-/**
- * DataCollector
- * Subscribes to configured datapoints and builds snapshots for analysis.
- */
-class DataCollector {
+class NotificationManager {
     constructor(adapter) {
         this.adapter = adapter;
-        this.history = {}; // { [stateId]: [{ts, val}] }
-        this.maxHistoryEntries = 288; // 24h at 5min intervals
     }
 
-    async subscribeToDatapoints() {
-        const dp = this.adapter.config.datapoints || [];
-        if (dp.length === 0) {
-            this.adapter.log.warn('No datapoints configured! Please add datapoints in adapter settings.');
-            return;
-        }
+    async send(message) {
+        const cfg = this.adapter.config;
 
-        for (const point of dp) {
-            if (point.id) {
-                await this.adapter.subscribeForeignStatesAsync(point.id);
-                this.adapter.log.debug(`Subscribed to: ${point.id}`);
-            }
-        }
-        this.adapter.log.info(`Subscribed to ${dp.length} datapoints`);
-    }
-
-    recordStateChange(id, state) {
-        if (!this.history[id]) this.history[id] = [];
-        this.history[id].push({ ts: state.ts || Date.now(), val: state.val });
-
-        // Keep only last N entries
-        if (this.history[id].length > this.maxHistoryEntries) {
-            this.history[id] = this.history[id].slice(-this.maxHistoryEntries);
-        }
-    }
-
-    async collectSnapshot() {
-        const dp = this.adapter.config.datapoints || [];
-        const snapshot = {
-            timestamp: new Date().toISOString(),
-            currentValues: {},
-            history: {},
-            deviceGroups: {},
-        };
-
-        for (const point of dp) {
-            if (!point.id) continue;
+        // ioBroker telegram adapter
+        if (cfg.notifyTelegram) {
             try {
-                const state = await this.adapter.getForeignStateAsync(point.id);
-                snapshot.currentValues[point.id] = {
-                    value: state ? state.val : null,
-                    unit: point.unit || '',
-                    label: point.label || point.id,
-                    category: point.category || 'other',
-                    ts: state ? state.ts : null,
-                };
-
-                // Include recent history
-                if (this.history[point.id]) {
-                    snapshot.history[point.id] = this.history[point.id].slice(-48); // last 4h at 5min
-                }
-
-                // Group by category
-                const cat = point.category || 'other';
-                if (!snapshot.deviceGroups[cat]) snapshot.deviceGroups[cat] = [];
-                snapshot.deviceGroups[cat].push(point.id);
-
+                await this.adapter.sendToAsync('telegram', 'send', {
+                    text: message,
+                    user: cfg.telegramUser || undefined,
+                });
             } catch (err) {
-                this.adapter.log.warn(`Could not read state ${point.id}: ${err.message}`);
+                this.adapter.log.warn('Telegram notification failed: ' + err.message);
             }
         }
 
-        // Add system context
-        snapshot.context = {
-            time: new Date().toLocaleTimeString('de-DE'),
-            date: new Date().toLocaleDateString('de-DE'),
-            dayOfWeek: ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][new Date().getDay()],
-            season: this._getSeason(),
-        };
+        // ioBroker pushover adapter
+        if (cfg.notifyPushover) {
+            try {
+                await this.adapter.sendToAsync('pushover', 'send', {
+                    message,
+                    title: 'Household Intelligence',
+                });
+            } catch (err) {
+                this.adapter.log.warn('Pushover notification failed: ' + err.message);
+            }
+        }
 
-        return snapshot;
-    }
+        // ioBroker email adapter
+        if (cfg.notifyEmail && cfg.emailTo) {
+            try {
+                await this.adapter.sendToAsync('email', 'send', {
+                    to: cfg.emailTo,
+                    subject: 'Household Intelligence',
+                    text: message,
+                });
+            } catch (err) {
+                this.adapter.log.warn('Email notification failed: ' + err.message);
+            }
+        }
 
-    _getSeason() {
-        const m = new Date().getMonth() + 1;
-        if (m >= 3 && m <= 5) return 'Frühling';
-        if (m >= 6 && m <= 8) return 'Sommer';
-        if (m >= 9 && m <= 11) return 'Herbst';
-        return 'Winter';
+        // Always log
+        this.adapter.log.info('Notification: ' + message.substring(0, 100));
     }
 }
 
-module.exports = DataCollector;
+module.exports = NotificationManager;

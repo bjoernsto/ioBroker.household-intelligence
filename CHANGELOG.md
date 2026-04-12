@@ -1,36 +1,19 @@
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Changelog
 
-# ioBroker runtime files
-iobroker-data/
-*.db
-*.gz
+All notable changes to this project will be documented in this file.
 
-# OS files
-.DS_Store
-Thumbs.db
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+## [0.1.0] - 2026-04-12
 
-# Build output
-dist/
-build/
-
-# Test coverage
-coverage/
-.nyc_output/
-
-# Environment
-.env
-.env.local
-
-# Logs
-logs/
-*.log
+### Added
+- Initial release
+- LLM backend support: Ollama (local) and OpenAI (cloud)
+- Household analysis with savings tips every 1–24 hours
+- Anomaly detection every 15 minutes (statistical + LLM)
+- Automation suggestions based on usage patterns
+- Notifications via Telegram, Pushover, E-Mail
+- Free-text questions via `sendTo` API
+- Admin UI with datapoint table (category, unit, label)
+- GitHub Actions CI/CD pipeline
