@@ -1,136 +1,197 @@
-# ioBroker.household-intelligence
+'use strict';
 
-> **KI-gestützter Smart-Home-Adapter** für ioBroker – mit lokalem LLM (Ollama) oder OpenAI
+const utils = require('@iobroker/adapter-core');
+const LLMClient = require('./lib/llmClient');
+const DataCollector = require('./lib/dataCollector');
+const Analyzer = require('./lib/analyzer');
+const NotificationManager = require('./lib/notificationManager');
 
----
+class HouseholdIntelligence extends utils.Adapter {
+    constructor(options) {
+        super({ ...options, name: 'household-intelligence' });
 
-## Was macht dieser Adapter?
+        this.llmClient = null;
+        this.dataCollector = null;
+        this.analyzer = null;
+        this.notificationManager = null;
+        this.analysisInterval = null;
+        this.anomalyInterval = null;
 
-- 🔍 **Verbrauchsanalyse** – Analysiert Strom, Heizung, Wasser und gibt Spar-Tipps
-- 🚨 **Anomalie-Erkennung** – Erkennt ungewöhnliches Verhalten (defektes Gerät, Einbruch, vergessenes Licht)
-- 💡 **Automationsvorschläge** – Schlägt sinnvolle Automationen vor, die der Nutzer per Klick bestätigen kann
-- 💬 **Freie Fragen** – Über `sendTo` können Fragen an das LLM gestellt werden
+        this.on('ready', this.onReady.bind(this));
+        this.on('stateChange', this.onStateChange.bind(this));
+        this.on('message', this.onMessage.bind(this));
+        this.on('unload', this.onUnload.bind(this));
+    }
 
----
+    async onReady() {
+        this.log.info('Household Intelligence Adapter starting...');
 
-## Voraussetzungen
+        // Init LLM client (Ollama or OpenAI depending on config)
+        this.llmClient = new LLMClient(this.config, this.log);
+        const connected = await this.llmClient.testConnection();
 
-- ioBroker (Node.js >= 18)
-- **Für Ollama (empfohlen auf Proxmox):** Ollama läuft im selben Netzwerk
-- **Für OpenAI:** API-Key von platform.openai.com
+        if (!connected) {
+            this.log.error('Could not connect to LLM backend! Check your configuration.');
+            this.setState('info.connection', false, true);
+            return;
+        }
 
----
+        this.setState('info.connection', true, true);
+        this.log.info(`Connected to LLM backend: ${this.config.llmBackend}`);
 
-## Ollama auf Proxmox einrichten
+        // Init sub-modules
+        this.dataCollector = new DataCollector(this);
+        this.analyzer = new Analyzer(this.llmClient, this.log);
+        this.notificationManager = new NotificationManager(this);
 
-```bash
-# In einem LXC oder der VM:
-curl -fsSL https://ollama.com/install.sh | sh
+        // Subscribe to configured datapoints
+        await this.dataCollector.subscribeToDatapoints();
 
-# Modell laden (einmalig, ~4GB):
-ollama pull llama3
+        // Create state objects
+        await this.createStateObjects();
 
-# Oder kleineres Modell für schwächere Hardware:
-ollama pull mistral      # 4GB RAM ausreichend
-ollama pull phi4-mini    # 2GB RAM ausreichend
+        // Run initial analysis
+        await this.runFullAnalysis();
 
-# Ollama für Netzwerkzugriff freigeben:
-# /etc/systemd/system/ollama.service.d/override.conf
-[Service]
-Environment="OLLAMA_HOST=0.0.0.0:11434"
+        // Schedule recurring analysis (default: every 6 hours)
+        const analysisIntervalHours = this.config.analysisIntervalHours || 6;
+        this.analysisInterval = setInterval(
+            () => this.runFullAnalysis(),
+            analysisIntervalHours * 60 * 60 * 1000
+        );
 
-systemctl daemon-reload && systemctl restart ollama
-```
+        // Schedule anomaly detection (default: every 15 minutes)
+        this.anomalyInterval = setInterval(
+            () => this.runAnomalyDetection(),
+            15 * 60 * 1000
+        );
 
----
+        this.log.info('Household Intelligence Adapter ready!');
+    }
 
-## Installation
+    async createStateObjects() {
+        const states = [
+            { id: 'analysis.lastReport', name: 'Last Analysis Report', type: 'string', role: 'text' },
+            { id: 'analysis.lastRunTime', name: 'Last Analysis Timestamp', type: 'string', role: 'date' },
+            { id: 'analysis.savingsTipCount', name: 'Number of savings tips', type: 'number', role: 'value' },
+            { id: 'anomaly.lastDetected', name: 'Last Anomaly Detected', type: 'string', role: 'text' },
+            { id: 'anomaly.activeAlerts', name: 'Active Anomaly Alerts (JSON)', type: 'string', role: 'json' },
+            { id: 'automation.suggestions', name: 'Automation Suggestions (JSON)', type: 'string', role: 'json' },
+            { id: 'automation.pendingCount', name: 'Pending Suggestions Count', type: 'number', role: 'value' },
+            { id: 'info.connection', name: 'LLM Backend Connected', type: 'boolean', role: 'indicator.connected' },
+            { id: 'control.triggerAnalysis', name: 'Trigger Manual Analysis', type: 'boolean', role: 'button' },
+            { id: 'control.clearAlerts', name: 'Clear All Alerts', type: 'boolean', role: 'button' },
+        ];
 
-### Methode 1: Via GitHub (empfohlen für Entwickler)
+        for (const s of states) {
+            await this.setObjectNotExistsAsync(s.id, {
+                type: 'state',
+                common: {
+                    name: s.name,
+                    type: s.type,
+                    role: s.role,
+                    read: true,
+                    write: s.role === 'button',
+                },
+                native: {},
+            });
+        }
+    }
 
-```bash
-cd /opt/iobroker
-npm install https://github.com/YOUR_USER/ioBroker.household-intelligence/tarball/main
-iobroker upload household-intelligence
-iobroker restart admin
-```
+    async runFullAnalysis() {
+        this.log.info('Running full household analysis...');
+        try {
+            const snapshot = await this.dataCollector.collectSnapshot();
+            const report = await this.analyzer.analyzeHousehold(snapshot);
 
-### Methode 2: Manuell
+            await this.setState('analysis.lastReport', JSON.stringify(report.summary), true);
+            await this.setState('analysis.lastRunTime', new Date().toISOString(), true);
+            await this.setState('analysis.savingsTipCount', report.savingsTips.length, true);
+            await this.setState('automation.suggestions', JSON.stringify(report.automationSuggestions), true);
+            await this.setState('automation.pendingCount', report.automationSuggestions.length, true);
 
-```bash
-cp -r /path/to/iobroker-household-intelligence /opt/iobroker/node_modules/iobroker.household-intelligence
-cd /opt/iobroker
-iobroker upload household-intelligence
-```
+            if (report.savingsTips.length > 0) {
+                const msg = `💡 ${report.savingsTips.length} neue Spar-Tipps verfügbar:\n` +
+                    report.savingsTips.slice(0, 3).map(t => `• ${t}`).join('\n');
+                await this.notificationManager.send(msg);
+            }
 
----
+            this.log.info(`Analysis complete. ${report.savingsTips.length} tips, ${report.automationSuggestions.length} suggestions.`);
+        } catch (err) {
+            this.log.error('Analysis failed: ' + err.message);
+        }
+    }
 
-## Konfiguration
+    async runAnomalyDetection() {
+        try {
+            const snapshot = await this.dataCollector.collectSnapshot();
+            const anomalies = await this.analyzer.detectAnomalies(snapshot);
 
-### 1. LLM Backend wählen
+            if (anomalies.length > 0) {
+                const alertMsg = anomalies.map(a => `⚠️ ${a.device}: ${a.description}`).join('\n');
+                await this.setState('anomaly.lastDetected', alertMsg, true);
+                await this.setState('anomaly.activeAlerts', JSON.stringify(anomalies), true);
+                await this.notificationManager.send('🚨 Anomalie erkannt!\n' + alertMsg);
+                this.log.warn('Anomalies detected: ' + alertMsg);
+            }
+        } catch (err) {
+            this.log.error('Anomaly detection failed: ' + err.message);
+        }
+    }
 
-| Backend | Wann? | Kosten |
-|---|---|---|
-| Ollama (lokal) | Proxmox/Server mit ≥8GB RAM | Kostenlos |
-| OpenAI | Wenig RAM, beste Qualität | ~0,01-0,10€/Analyse |
+    async onStateChange(id, state) {
+        if (!state || state.ack) return;
 
-### 2. Datenpunkte hinzufügen
+        if (id.endsWith('control.triggerAnalysis') && state.val) {
+            this.log.info('Manual analysis triggered');
+            await this.runFullAnalysis();
+            await this.setState('control.triggerAnalysis', false, true);
+        }
 
-In der Admin-Oberfläche unter **"Datenpunkte"** die zu überwachenden States eintragen:
+        if (id.endsWith('control.clearAlerts') && state.val) {
+            await this.setState('anomaly.activeAlerts', '[]', true);
+            await this.setState('anomaly.lastDetected', '', true);
+            await this.setState('control.clearAlerts', false, true);
+        }
 
-| Datenpunkt | Bezeichnung | Kategorie | Einheit |
-|---|---|---|---|
-| `shelly.0.SHELLY_1.Power` | Wohnzimmer Strom | Strom | W |
-| `hm-rpc.0.THERMOSTAT.TEMPERATURE` | Wohnzimmer Temperatur | Temperatur | °C |
-| `tr-064.0.presence.HANDY_MAX` | Max anwesend | Anwesenheit | |
-| `sma.0.total.GridConsumedEnergy` | Netzbezug heute | Strom | kWh |
+        // Feed new state value into data collector history
+        if (this.dataCollector) {
+            this.dataCollector.recordStateChange(id, state);
+        }
+    }
 
-### 3. Benachrichtigungen
+    async onMessage(obj) {
+        if (!obj || !obj.command) return;
 
-Telegram, Pushover oder E-Mail können aktiviert werden (benötigen den jeweiligen ioBroker-Adapter).
+        if (obj.command === 'askLLM' && obj.message) {
+            try {
+                const snapshot = await this.dataCollector.collectSnapshot();
+                const answer = await this.analyzer.askFreeQuestion(snapshot, obj.message);
+                this.sendTo(obj.from, obj.command, { result: answer }, obj.callback);
+            } catch (err) {
+                this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
+            }
+        }
 
----
+        if (obj.command === 'getReport') {
+            const state = await this.getStateAsync('analysis.lastReport');
+            this.sendTo(obj.from, obj.command, { result: state ? state.val : 'No report yet' }, obj.callback);
+        }
+    }
 
-## Datenpunkte des Adapters
+    onUnload(callback) {
+        try {
+            if (this.analysisInterval) clearInterval(this.analysisInterval);
+            if (this.anomalyInterval) clearInterval(this.anomalyInterval);
+            callback();
+        } catch (e) {
+            callback();
+        }
+    }
+}
 
-| Datenpunkt | Beschreibung |
-|---|---|
-| `analysis.lastReport` | Letzter Analysebericht (JSON) |
-| `analysis.lastRunTime` | Zeitstempel der letzten Analyse |
-| `analysis.savingsTipCount` | Anzahl Spar-Tipps |
-| `anomaly.activeAlerts` | Aktive Anomalie-Warnungen (JSON) |
-| `automation.suggestions` | Automationsvorschläge (JSON) |
-| `control.triggerAnalysis` | Auf `true` setzen → manuelle Analyse |
-| `control.clearAlerts` | Auf `true` setzen → Warnungen löschen |
-| `info.connection` | LLM-Verbindungsstatus |
-
----
-
-## Freie Fragen per sendTo (Blockly/JavaScript)
-
-```javascript
-// Im JavaScript-Adapter:
-sendTo('household-intelligence.0', 'askLLM',
-  'Wie viel Strom hat die Heizung heute verbraucht?',
-  (result) => {
-    console.log(result.result);
-  }
-);
-```
-
----
-
-## Empfohlene Modelle nach Hardware
-
-| RAM | Empfohlenes Modell | Qualität |
-|---|---|---|
-| 4 GB | `phi4-mini` | Gut |
-| 8 GB | `mistral` | Sehr gut |
-| 16 GB | `llama3` | Ausgezeichnet |
-| 32 GB | `llama3:70b` | Exzellent |
-
----
-
-## Lizenz
-
-MIT © ioBroker Community
+if (require.main !== module) {
+    module.exports = (options) => new HouseholdIntelligence(options);
+} else {
+    new HouseholdIntelligence();
+}

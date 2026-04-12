@@ -1,102 +1,96 @@
 'use strict';
 
-const assert = require('assert');
+/**
+ * DataCollector
+ * Subscribes to configured datapoints and builds snapshots for analysis.
+ */
+class DataCollector {
+    constructor(adapter) {
+        this.adapter = adapter;
+        this.history = {}; // { [stateId]: [{ts, val}] }
+        this.maxHistoryEntries = 288; // 24h at 5min intervals
+    }
 
-// Mock logger
-const mockLog = {
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    debug: () => {},
-};
+    async subscribeToDatapoints() {
+        const dp = this.adapter.config.datapoints || [];
+        if (dp.length === 0) {
+            this.adapter.log.warn('No datapoints configured! Please add datapoints in adapter settings.');
+            return;
+        }
 
-describe('LLMClient', () => {
-    const LLMClient = require('../lib/llmClient');
+        for (const point of dp) {
+            if (point.id) {
+                await this.adapter.subscribeForeignStatesAsync(point.id);
+                this.adapter.log.debug(`Subscribed to: ${point.id}`);
+            }
+        }
+        this.adapter.log.info(`Subscribed to ${dp.length} datapoints`);
+    }
 
-    it('should instantiate with ollama config', () => {
-        const client = new LLMClient({
-            llmBackend: 'ollama',
-            ollamaHost: 'http://localhost:11434',
-            ollamaModel: 'llama3',
-        }, mockLog);
-        assert.strictEqual(client.backend, 'ollama');
-        assert.strictEqual(client.ollamaModel, 'llama3');
-    });
+    recordStateChange(id, state) {
+        if (!this.history[id]) this.history[id] = [];
+        this.history[id].push({ ts: state.ts || Date.now(), val: state.val });
 
-    it('should instantiate with openai config', () => {
-        const client = new LLMClient({
-            llmBackend: 'openai',
-            openaiApiKey: 'sk-test',
-            openaiModel: 'gpt-4o-mini',
-        }, mockLog);
-        assert.strictEqual(client.backend, 'openai');
-        assert.strictEqual(client.openaiModel, 'gpt-4o-mini');
-    });
+        // Keep only last N entries
+        if (this.history[id].length > this.maxHistoryEntries) {
+            this.history[id] = this.history[id].slice(-this.maxHistoryEntries);
+        }
+    }
 
-    it('should fail connection test when no openai key', async () => {
-        const client = new LLMClient({
-            llmBackend: 'openai',
-            openaiApiKey: '',
-        }, mockLog);
-        const result = await client.testConnection();
-        assert.strictEqual(result, false);
-    });
-});
-
-describe('Analyzer', () => {
-    const Analyzer = require('../lib/analyzer');
-
-    const mockLLM = {
-        complete: async () => JSON.stringify({
-            summary: 'Test summary',
-            savingsTips: ['Tip 1'],
-            automationSuggestions: [],
-            insights: [],
-        }),
-    };
-
-    it('should return analysis result', async () => {
-        const analyzer = new Analyzer(mockLLM, mockLog);
+    async collectSnapshot() {
+        const dp = this.adapter.config.datapoints || [];
         const snapshot = {
             timestamp: new Date().toISOString(),
-            currentValues: {
-                'test.0.power': { value: 100, unit: 'W', label: 'Test', category: 'power' },
-            },
-            history: {},
-            deviceGroups: {},
-            context: { time: '12:00', date: '12.04.2026', dayOfWeek: 'Samstag', season: 'Frühling' },
-        };
-        const result = await analyzer.analyzeHousehold(snapshot);
-        assert.ok(result.summary);
-        assert.ok(Array.isArray(result.savingsTips));
-    });
-
-    it('should return empty anomaly array when no baseline', async () => {
-        const analyzer = new Analyzer(mockLLM, mockLog);
-        const snapshot = {
             currentValues: {},
             history: {},
-            context: { time: '12:00', dayOfWeek: 'Samstag' },
+            deviceGroups: {},
         };
-        const result = await analyzer.detectAnomalies(snapshot);
-        assert.ok(Array.isArray(result));
-    });
-});
 
-describe('DataCollector', () => {
-    it('should record state changes and cap history', () => {
-        // Minimal mock adapter
-        const mockAdapter = {
-            config: { datapoints: [] },
-            log: mockLog,
-            subscribeForeignStatesAsync: async () => {},
-        };
-        const DataCollector = require('../lib/dataCollector');
-        const dc = new DataCollector(mockAdapter);
+        for (const point of dp) {
+            if (!point.id) continue;
+            try {
+                const state = await this.adapter.getForeignStateAsync(point.id);
+                snapshot.currentValues[point.id] = {
+                    value: state ? state.val : null,
+                    unit: point.unit || '',
+                    label: point.label || point.id,
+                    category: point.category || 'other',
+                    ts: state ? state.ts : null,
+                };
 
-        for (let i = 0; i < 300; i++) {
-            dc.recordStateChange('test.0.val', { ts: Date.now(), val: i });
+                // Include recent history
+                if (this.history[point.id]) {
+                    snapshot.history[point.id] = this.history[point.id].slice(-48); // last 4h at 5min
+                }
+
+                // Group by category
+                const cat = point.category || 'other';
+                if (!snapshot.deviceGroups[cat]) snapshot.deviceGroups[cat] = [];
+                snapshot.deviceGroups[cat].push(point.id);
+
+            } catch (err) {
+                this.adapter.log.warn(`Could not read state ${point.id}: ${err.message}`);
+            }
         }
-        assert.ok(dc.history['test.0.val'].length <= dc.maxHistoryEntries);
-    });
-});
+
+        // Add system context
+        snapshot.context = {
+            time: new Date().toLocaleTimeString('de-DE'),
+            date: new Date().toLocaleDateString('de-DE'),
+            dayOfWeek: ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][new Date().getDay()],
+            season: this._getSeason(),
+        };
+
+        return snapshot;
+    }
+
+    _getSeason() {
+        const m = new Date().getMonth() + 1;
+        if (m >= 3 && m <= 5) return 'Frühling';
+        if (m >= 6 && m <= 8) return 'Sommer';
+        if (m >= 9 && m <= 11) return 'Herbst';
+        return 'Winter';
+    }
+}
+
+module.exports = DataCollector;
