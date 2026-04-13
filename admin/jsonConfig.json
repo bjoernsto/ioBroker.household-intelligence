@@ -1,192 +1,177 @@
 {
-  "type": "panel",
+  "type": "tabs",
   "items": {
-    "_llmBackend": {
-      "type": "select",
+    "tab_llm": {
+      "type": "panel",
       "label": "LLM Backend",
-      "attr": "llmBackend",
-      "options": [
-        { "label": "Ollama (lokal, empfohlen)", "value": "ollama" },
-        { "label": "OpenAI (Cloud)", "value": "openai" }
-      ],
-      "default": "ollama",
-      "sm": 12,
-      "newLine": true
-    },
-    "_ollamaHeader": {
-      "type": "header",
-      "text": "Ollama Einstellungen",
-      "newLine": true,
-      "hidden": "data.llmBackend !== 'ollama'"
-    },
-    "ollamaHost": {
-      "type": "text",
-      "label": "Ollama Host URL",
-      "default": "http://localhost:11434",
-      "hidden": "data.llmBackend !== 'ollama'",
-      "sm": 12,
-      "newLine": true
-    },
-    "ollamaModel": {
-      "type": "text",
-      "label": "Ollama Modell (z.B. mistral, llama3, phi4-mini)",
-      "default": "mistral",
-      "hidden": "data.llmBackend !== 'ollama'",
-      "sm": 12,
-      "newLine": true
-    },
-    "_openaiHeader": {
-      "type": "header",
-      "text": "OpenAI Einstellungen",
-      "newLine": true,
-      "hidden": "data.llmBackend !== 'openai'"
-    },
-    "openaiApiKey": {
-      "type": "password",
-      "label": "OpenAI API Key",
-      "hidden": "data.llmBackend !== 'openai'",
-      "sm": 12,
-      "newLine": true
-    },
-    "openaiModel": {
-      "type": "select",
-      "label": "OpenAI Modell",
-      "options": [
-        { "label": "GPT-4o mini (günstig)", "value": "gpt-4o-mini" },
-        { "label": "GPT-4o (besser)", "value": "gpt-4o" }
-      ],
-      "default": "gpt-4o-mini",
-      "hidden": "data.llmBackend !== 'openai'",
-      "sm": 12,
-      "newLine": true
-    },
-    "_advHeader": {
-      "type": "header",
-      "text": "Erweiterte Einstellungen",
-      "newLine": true
-    },
-    "maxTokens": {
-      "type": "number",
-      "label": "Max. Tokens pro Anfrage",
-      "default": 1500,
-      "min": 500,
-      "max": 4000,
-      "sm": 6,
-      "newLine": true
-    },
-    "timeoutSeconds": {
-      "type": "number",
-      "label": "Timeout in Sekunden",
-      "default": 300,
-      "min": 60,
-      "max": 600,
-      "sm": 6
-    },
-    "analysisIntervalHours": {
-      "type": "select",
-      "label": "Analyse-Intervall",
-      "options": [
-        { "label": "Jede Stunde", "value": 1 },
-        { "label": "Alle 3 Stunden", "value": 3 },
-        { "label": "Alle 6 Stunden (empfohlen)", "value": 6 },
-        { "label": "Einmal täglich", "value": 24 }
-      ],
-      "default": 6,
-      "sm": 6,
-      "newLine": true
-    },
-    "_dpHeader": {
-      "type": "header",
-      "text": "Datenpunkte",
-      "newLine": true
-    },
-    "_dpInfo": {
-      "type": "staticText",
-      "text": "Füge hier die ioBroker-Datenpunkte hinzu, die der Adapter überwachen soll (z.B. Stromzähler, Temperaturen, Geräte).",
-      "newLine": true,
-      "sm": 12
-    },
-    "datapoints": {
-      "type": "table",
-      "label": "Überwachte Datenpunkte",
-      "sm": 12,
-      "newLine": true,
-      "noDelete": false,
-      "objKeyName": "id",
-      "columns": [
-        {
-          "attr": "id",
-          "title": "Datenpunkt ID",
-          "type": "text",
-          "width": "35%"
-        },
-        {
-          "attr": "label",
-          "title": "Bezeichnung (für KI)",
-          "type": "text",
-          "width": "25%"
-        },
-        {
-          "attr": "category",
-          "title": "Kategorie",
+      "items": {
+        "llmBackend": {
           "type": "select",
+          "label": "LLM Backend",
           "options": [
-            { "label": "Strom", "value": "power" },
-            { "label": "Temperatur", "value": "temperature" },
-            { "label": "Heizung", "value": "heating" },
-            { "label": "Wasser", "value": "water" },
-            { "label": "Beleuchtung", "value": "light" },
-            { "label": "Anwesenheit", "value": "presence" },
-            { "label": "Sicherheit", "value": "security" },
-            { "label": "PV / Solar", "value": "solar" },
-            { "label": "Sonstiges", "value": "other" }
+            { "label": "Ollama (lokal, empfohlen)", "value": "ollama" },
+            { "label": "OpenAI (Cloud)", "value": "openai" }
           ],
-          "width": "25%"
+          "default": "ollama",
+          "sm": 12
         },
-        {
-          "attr": "unit",
-          "title": "Einheit",
+        "ollamaHost": {
           "type": "text",
-          "width": "15%"
+          "label": "Ollama Host URL",
+          "default": "http://localhost:11434",
+          "hidden": "data.llmBackend !== 'ollama'",
+          "sm": 12,
+          "newLine": true
+        },
+        "ollamaModel": {
+          "type": "text",
+          "label": "Ollama Modell (z.B. mistral, llama3, phi4-mini)",
+          "default": "mistral",
+          "hidden": "data.llmBackend !== 'ollama'",
+          "sm": 12,
+          "newLine": true
+        },
+        "openaiApiKey": {
+          "type": "password",
+          "label": "OpenAI API Key",
+          "hidden": "data.llmBackend !== 'openai'",
+          "sm": 12,
+          "newLine": true
+        },
+        "openaiModel": {
+          "type": "select",
+          "label": "OpenAI Modell",
+          "options": [
+            { "label": "GPT-4o mini (günstig)", "value": "gpt-4o-mini" },
+            { "label": "GPT-4o (besser)", "value": "gpt-4o" }
+          ],
+          "default": "gpt-4o-mini",
+          "hidden": "data.llmBackend !== 'openai'",
+          "sm": 12,
+          "newLine": true
+        },
+        "maxTokens": {
+          "type": "number",
+          "label": "Max. Tokens pro Anfrage",
+          "default": 1500,
+          "min": 500,
+          "max": 4000,
+          "sm": 6,
+          "newLine": true
+        },
+        "timeoutSeconds": {
+          "type": "number",
+          "label": "Timeout in Sekunden",
+          "default": 300,
+          "min": 60,
+          "max": 600,
+          "sm": 6
+        },
+        "analysisIntervalHours": {
+          "type": "select",
+          "label": "Analyse-Intervall",
+          "options": [
+            { "label": "Jede Stunde", "value": 1 },
+            { "label": "Alle 3 Stunden", "value": 3 },
+            { "label": "Alle 6 Stunden (empfohlen)", "value": 6 },
+            { "label": "Einmal täglich", "value": 24 }
+          ],
+          "default": 6,
+          "sm": 6,
+          "newLine": true
         }
-      ]
+      }
     },
-    "_notifyHeader": {
-      "type": "header",
-      "text": "Benachrichtigungen",
-      "newLine": true
+    "tab_datapoints": {
+      "type": "panel",
+      "label": "Datenpunkte",
+      "items": {
+        "_dpInfo": {
+          "type": "staticText",
+          "text": "Füge hier die ioBroker-Datenpunkte hinzu, die der Adapter überwachen soll.",
+          "sm": 12
+        },
+        "datapoints": {
+          "type": "table",
+          "label": "Überwachte Datenpunkte",
+          "sm": 12,
+          "newLine": true,
+          "columns": [
+            {
+              "attr": "id",
+              "title": "Datenpunkt ID",
+              "type": "text",
+              "width": "35%"
+            },
+            {
+              "attr": "label",
+              "title": "Bezeichnung",
+              "type": "text",
+              "width": "25%"
+            },
+            {
+              "attr": "category",
+              "title": "Kategorie",
+              "type": "select",
+              "options": [
+                { "label": "Strom", "value": "power" },
+                { "label": "Temperatur", "value": "temperature" },
+                { "label": "Heizung", "value": "heating" },
+                { "label": "Wasser", "value": "water" },
+                { "label": "Beleuchtung", "value": "light" },
+                { "label": "Anwesenheit", "value": "presence" },
+                { "label": "Sicherheit", "value": "security" },
+                { "label": "PV / Solar", "value": "solar" },
+                { "label": "Sonstiges", "value": "other" }
+              ],
+              "width": "25%"
+            },
+            {
+              "attr": "unit",
+              "title": "Einheit",
+              "type": "text",
+              "width": "15%"
+            }
+          ]
+        }
+      }
     },
-    "notifyTelegram": {
-      "type": "checkbox",
-      "label": "Telegram (benötigt Telegram Adapter)",
-      "sm": 12,
-      "newLine": true
-    },
-    "telegramUser": {
-      "type": "text",
-      "label": "Telegram Benutzername (leer = alle)",
-      "hidden": "!data.notifyTelegram",
-      "sm": 12,
-      "newLine": true
-    },
-    "notifyPushover": {
-      "type": "checkbox",
-      "label": "Pushover (benötigt Pushover Adapter)",
-      "sm": 12,
-      "newLine": true
-    },
-    "notifyEmail": {
-      "type": "checkbox",
-      "label": "E-Mail (benötigt Email Adapter)",
-      "sm": 12,
-      "newLine": true
-    },
-    "emailTo": {
-      "type": "text",
-      "label": "E-Mail Empfänger",
-      "hidden": "!data.notifyEmail",
-      "sm": 12,
-      "newLine": true
+    "tab_notifications": {
+      "type": "panel",
+      "label": "Benachrichtigungen",
+      "items": {
+        "notifyTelegram": {
+          "type": "checkbox",
+          "label": "Telegram (benötigt Telegram Adapter)",
+          "sm": 12
+        },
+        "telegramUser": {
+          "type": "text",
+          "label": "Telegram Benutzername (leer = alle)",
+          "hidden": "!data.notifyTelegram",
+          "sm": 12,
+          "newLine": true
+        },
+        "notifyPushover": {
+          "type": "checkbox",
+          "label": "Pushover (benötigt Pushover Adapter)",
+          "sm": 12,
+          "newLine": true
+        },
+        "notifyEmail": {
+          "type": "checkbox",
+          "label": "E-Mail (benötigt Email Adapter)",
+          "sm": 12,
+          "newLine": true
+        },
+        "emailTo": {
+          "type": "text",
+          "label": "E-Mail Empfänger",
+          "hidden": "!data.notifyEmail",
+          "sm": 12,
+          "newLine": true
+        }
+      }
     }
   }
 }

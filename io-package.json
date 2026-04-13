@@ -17,8 +17,17 @@
       "en": "AI-powered analysis, anomaly detection and automation suggestions for your smart home using local LLM (Ollama) or OpenAI.",
       "de": "KI-gestützte Analyse, Anomalie-Erkennung und Automationsvorschläge für dein Smart Home – mit lokalem LLM (Ollama) oder OpenAI."
     },
-    "authors": ["ioBroker Community"],
-    "keywords": ["AI", "LLM", "Ollama", "smarthome", "energy", "automation"],
+    "authors": [
+      "ioBroker Community"
+    ],
+    "keywords": [
+      "AI",
+      "LLM",
+      "Ollama",
+      "smarthome",
+      "energy",
+      "automation"
+    ],
     "license": "MIT",
     "type": "general",
     "main": "main.js",
@@ -51,14 +60,23 @@
     "notifyEmail": false,
     "telegramUser": "",
     "emailTo": "",
-    "datapoints": []
+    "datapoints": [
+      {
+        "id": "",
+        "label": "Beispiel Temperatur",
+        "category": "temperature",
+        "unit": "°C"
+      }
+    ]
   },
   "objects": [],
   "instanceObjects": [
     {
       "_id": "info",
       "type": "channel",
-      "common": { "name": "Information" },
+      "common": {
+        "name": "Information"
+      },
       "native": {}
     },
     {
