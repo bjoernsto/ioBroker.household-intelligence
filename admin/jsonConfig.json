@@ -1,5 +1,6 @@
 {
   "type": "tabs",
+  "i18n": false,
   "items": {
     "tab_llm": {
       "type": "panel",
@@ -86,53 +87,23 @@
       "type": "panel",
       "label": "Datenpunkte",
       "items": {
-        "_dpInfo": {
+        "_dpHelp": {
           "type": "staticText",
-          "text": "Füge hier die ioBroker-Datenpunkte hinzu, die der Adapter überwachen soll.",
+          "text": "Trage hier deine Datenpunkte als JSON ein. Format: [{\"id\":\"hm-rpc.0.sensor.TEMPERATURE\",\"label\":\"Wohnzimmer Temp\",\"category\":\"temperature\",\"unit\":\"°C\"}]",
           "sm": 12
         },
-        "datapoints": {
-          "type": "table",
-          "label": "Überwachte Datenpunkte",
+        "datapointsJson": {
+          "type": "jsonEditor",
+          "label": "Datenpunkte (JSON)",
           "sm": 12,
           "newLine": true,
-          "columns": [
-            {
-              "attr": "id",
-              "title": "Datenpunkt ID",
-              "type": "text",
-              "width": "35%"
-            },
-            {
-              "attr": "label",
-              "title": "Bezeichnung",
-              "type": "text",
-              "width": "25%"
-            },
-            {
-              "attr": "category",
-              "title": "Kategorie",
-              "type": "select",
-              "options": [
-                { "label": "Strom", "value": "power" },
-                { "label": "Temperatur", "value": "temperature" },
-                { "label": "Heizung", "value": "heating" },
-                { "label": "Wasser", "value": "water" },
-                { "label": "Beleuchtung", "value": "light" },
-                { "label": "Anwesenheit", "value": "presence" },
-                { "label": "Sicherheit", "value": "security" },
-                { "label": "PV / Solar", "value": "solar" },
-                { "label": "Sonstiges", "value": "other" }
-              ],
-              "width": "25%"
-            },
-            {
-              "attr": "unit",
-              "title": "Einheit",
-              "type": "text",
-              "width": "15%"
-            }
-          ]
+          "height": 300
+        },
+        "_dpExample": {
+          "type": "staticText",
+          "text": "Kategorien: power, temperature, heating, water, light, presence, security, solar, other",
+          "sm": 12,
+          "newLine": true
         }
       }
     },
