@@ -14,27 +14,22 @@
             width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px;
             box-sizing: border-box; margin-bottom: 8px; font-size: 13px;
         }
-        input[type=text]:focus, input[type=number]:focus, select:focus {
-            border-color: #2196F3; outline: none;
-        }
         .row { display: flex; gap: 12px; flex-wrap: wrap; }
         .col { flex: 1; min-width: 180px; }
         .col-sm { flex: 0 0 160px; }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
-        th { background: #f0f0f0; padding: 7px 8px; text-align: left; border: 1px solid #ddd; font-size: 12px; font-weight: bold; }
+        th { background: #f0f0f0; padding: 7px 8px; text-align: left; border: 1px solid #ddd; font-size: 12px; }
         td { padding: 4px 6px; border: 1px solid #eee; }
-        td input[type=text], td select {
-            width: 100%; padding: 4px 6px; border: 1px solid #ddd; border-radius: 2px;
-            margin: 0; font-size: 12px;
-        }
-        .btn { padding: 6px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; }
-        .btn-add { background: #4CAF50; color: white; margin-bottom: 8px; }
-        .btn-del { background: #f44336; color: white; padding: 3px 8px; font-size: 11px; }
+        td input[type=text], td select { width: 100%; padding: 4px 6px; border: 1px solid #ddd; border-radius: 2px; margin: 0; font-size: 12px; }
+        .btn { padding: 6px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; margin-right: 6px; }
+        .btn-add  { background: #4CAF50; color: white; }
+        .btn-load { background: #2196F3; color: white; }
+        .btn-del  { background: #f44336; color: white; padding: 3px 8px; font-size: 11px; }
         .info-text { color: #777; font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
         .hidden { display: none; }
         #dpCount { font-weight: bold; color: #2196F3; font-size: 13px; }
-        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-        .checkbox-row input[type=checkbox] { margin: 0; }
+        #dpStatus { font-size: 12px; color: #888; margin-left: 8px; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -51,11 +46,11 @@
         </div>
         <div class="col" id="col_ollamaHost">
             <label class="field-label">Ollama Host URL</label>
-            <input type="text" id="ollamaHost" placeholder="http://192.168.178.170:11434">
+            <input type="text" id="ollamaHost">
         </div>
         <div class="col" id="col_ollamaModel">
             <label class="field-label">Ollama Modell</label>
-            <input type="text" id="ollamaModel" placeholder="phi4-mini">
+            <input type="text" id="ollamaModel">
         </div>
         <div class="col hidden" id="col_openaiKey">
             <label class="field-label">OpenAI API Key</label>
@@ -64,8 +59,8 @@
         <div class="col hidden" id="col_openaiModel">
             <label class="field-label">OpenAI Modell</label>
             <select id="openaiModel">
-                <option value="gpt-4o-mini">GPT-4o mini (günstig)</option>
-                <option value="gpt-4o">GPT-4o (besser)</option>
+                <option value="gpt-4o-mini">GPT-4o mini</option>
+                <option value="gpt-4o">GPT-4o</option>
             </select>
         </div>
     </div>
@@ -91,21 +86,24 @@
 </div>
 
 <div class="section">
-    <h3>📡 Datenpunkte <span id="dpCount"></span></h3>
-    <p class="info-text">Datenpunkte die der Adapter überwacht und an die KI übergibt. Die automatische Erkennung findet beim Start alle relevanten States.</p>
+    <h3>📡 Datenpunkte <span id="dpCount"></span><span id="dpStatus">wird geladen...</span></h3>
+    <p class="info-text">Datenpunkte die der Adapter an die KI übergibt. Werden automatisch erkannt oder können manuell bearbeitet werden.</p>
     <div class="checkbox-row">
         <input type="checkbox" id="autoDiscover">
-        <label for="autoDiscover">Automatische Erkennung beim nächsten Start (überschreibt manuelle Liste)</label>
+        <label for="autoDiscover">Automatische Erkennung beim nächsten Start</label>
     </div>
-    <button class="btn btn-add" onclick="addRow()">+ Datenpunkt hinzufügen</button>
-    <table id="dpTable">
+    <div style="margin-bottom:10px;">
+        <button class="btn btn-load" onclick="loadFromAdapter()">🔄 Vom Adapter laden</button>
+        <button class="btn btn-add"  onclick="addRow()">+ Zeile hinzufügen</button>
+    </div>
+    <table>
         <thead>
             <tr>
-                <th style="width:38%">Datenpunkt ID</th>
+                <th style="width:36%">Datenpunkt ID</th>
                 <th style="width:26%">Bezeichnung</th>
                 <th style="width:20%">Kategorie</th>
-                <th style="width:8%">Einheit</th>
-                <th style="width:8%"></th>
+                <th style="width:9%">Einheit</th>
+                <th style="width:9%"></th>
             </tr>
         </thead>
         <tbody id="dpBody"></tbody>
@@ -118,7 +116,7 @@
         <div class="col">
             <div class="checkbox-row">
                 <input type="checkbox" id="notifyTelegram" onchange="toggleTelegram()">
-                <label for="notifyTelegram">Telegram (benötigt Telegram Adapter)</label>
+                <label for="notifyTelegram">Telegram</label>
             </div>
             <input type="text" id="telegramUser" placeholder="Benutzername (leer = alle)" class="hidden">
         </div>
@@ -140,6 +138,7 @@
 
 <script>
 const CATEGORIES = ['power','temperature','heating','water','light','presence','security','solar','other'];
+let _onChange = null;
 
 function toggleBackend() {
     const v = document.getElementById('llmBackend').value;
@@ -159,32 +158,41 @@ function toggleEmail() {
         !document.getElementById('notifyEmail').checked);
 }
 
+function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
 function addRow(dp) {
     const tbody = document.getElementById('dpBody');
     const tr = document.createElement('tr');
     const catOptions = CATEGORIES.map(c =>
-        `<option value="${c}" ${dp && dp.category === c ? 'selected' : ''}>${c}</option>`
+        `<option value="${c}"${dp && dp.category===c?' selected':''}>${c}</option>`
     ).join('');
     tr.innerHTML = `
-        <td><input type="text" class="dp-id" value="${dp ? escHtml(dp.id) : ''}" placeholder="adapter.0.device.STATE"></td>
-        <td><input type="text" class="dp-label" value="${dp ? escHtml(dp.label) : ''}" placeholder="Bezeichnung"></td>
+        <td><input type="text" class="dp-id"       value="${dp?escHtml(dp.id):''}"       placeholder="adapter.0.device.STATE"></td>
+        <td><input type="text" class="dp-label"    value="${dp?escHtml(dp.label||''):''}" placeholder="Bezeichnung"></td>
         <td><select class="dp-category">${catOptions}</select></td>
-        <td><input type="text" class="dp-unit" value="${dp ? escHtml(dp.unit||'') : ''}" placeholder="W"></td>
-        <td style="text-align:center"><button class="btn btn-del" onclick="this.closest('tr').remove();updateCount();M.emit('changed')">✕</button></td>
-    `;
+        <td><input type="text" class="dp-unit"     value="${dp?escHtml(dp.unit||''):''}"  placeholder="W" style="width:50px"></td>
+        <td style="text-align:center">
+            <button class="btn btn-del" onclick="this.closest('tr').remove();updateCount();if(_onChange)_onChange()">✕</button>
+        </td>`;
     tbody.appendChild(tr);
+    tr.querySelectorAll('input,select').forEach(el =>
+        el.addEventListener('change', () => { if(_onChange) _onChange(); })
+    );
     updateCount();
-    // notify ioBroker that something changed
-    tr.querySelectorAll('input, select').forEach(el => el.addEventListener('change', () => M.emit('changed')));
-}
-
-function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
 
 function updateCount() {
-    const rows = document.querySelectorAll('#dpBody tr').length;
-    document.getElementById('dpCount').textContent = `(${rows} Datenpunkte)`;
+    const n = document.querySelectorAll('#dpBody tr').length;
+    document.getElementById('dpCount').textContent = `(${n} Datenpunkte) `;
+    document.getElementById('dpStatus').textContent = '';
+}
+
+function renderDatapoints(dps) {
+    document.getElementById('dpBody').innerHTML = '';
+    dps.forEach(dp => addRow(dp));
+    updateCount();
 }
 
 function getDatapoints() {
@@ -194,16 +202,36 @@ function getDatapoints() {
         if (!id) return;
         result.push({
             id,
-            label: tr.querySelector('.dp-label').value.trim() || id.split('.').pop(),
+            label:    tr.querySelector('.dp-label').value.trim() || id.split('.').pop(),
             category: tr.querySelector('.dp-category').value,
-            unit: tr.querySelector('.dp-unit').value.trim(),
+            unit:     tr.querySelector('.dp-unit').value.trim(),
         });
     });
     return result;
 }
 
-// ── ioBroker adapter-settings integration ──────────────────────────────────
+// Load datapoints from running adapter via sendTo
+function loadFromAdapter() {
+    document.getElementById('dpStatus').textContent = '⏳ lade vom Adapter...';
+    try {
+        sendTo('household-intelligence.0', 'getDatapoints', null, function(result) {
+            if (result && result.result && result.result.length > 0) {
+                renderDatapoints(result.result);
+                document.getElementById('dpStatus').textContent =
+                    `✅ ${result.count} Datenpunkte vom Adapter geladen`;
+                if (_onChange) _onChange();
+            } else {
+                document.getElementById('dpStatus').textContent = '⚠️ Keine Datenpunkte vom Adapter';
+            }
+        });
+    } catch(e) {
+        document.getElementById('dpStatus').textContent = '❌ Adapter nicht erreichbar';
+    }
+}
+
+// ── ioBroker adapter-settings ──────────────────────────────────────────────
 function load(settings, onChange) {
+    _onChange = onChange;
     if (!settings) settings = {};
 
     document.getElementById('llmBackend').value            = settings.llmBackend || 'ollama';
@@ -221,20 +249,25 @@ function load(settings, onChange) {
     document.getElementById('notifyEmail').checked         = !!settings.notifyEmail;
     document.getElementById('emailTo').value               = settings.emailTo || '';
 
-    toggleBackend();
-    toggleTelegram();
-    toggleEmail();
+    toggleBackend(); toggleTelegram(); toggleEmail();
 
-    // Load datapoints table
+    // Load datapoints: first try from config, then from adapter
     document.getElementById('dpBody').innerHTML = '';
+    let loaded = false;
     try {
         const raw = settings.datapointsJson;
         const dps = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
-        dps.forEach(dp => addRow(dp));
-    } catch(e) { console.error('datapoints parse error', e); }
-    updateCount();
+        if (dps.length > 0) {
+            renderDatapoints(dps);
+            loaded = true;
+        }
+    } catch(e) {}
 
-    // Watch all inputs for changes
+    if (!loaded) {
+        // Auto-load from adapter if config is empty
+        loadFromAdapter();
+    }
+
     document.querySelectorAll('input, select').forEach(el => {
         el.addEventListener('change', onChange);
         el.addEventListener('input', onChange);
