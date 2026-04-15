@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Household Intelligence</title>
+    <link rel="stylesheet" href="../../lib/css/adapter.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        h3 { margin-top: 0; color: #333; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; }
+        input[type=text], input[type=number], input[type=password], select {
+            width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 3px;
+            box-sizing: border-box; margin-bottom: 10px;
+        }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 200px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f5f5f5; padding: 8px; text-align: left; border: 1px solid #ddd; font-size: 12px; }
+        td { padding: 6px; border: 1px solid #ddd; }
+        td input, td select { width: 100%; padding: 3px; border: 1px solid #ccc; border-radius: 2px; margin: 0; }
+        .btn { padding: 6px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; }
+        .btn-add { background: #4CAF50; color: white; }
+        .btn-del { background: #f44336; color: white; padding: 3px 8px; }
+        .btn-discover { background: #2196F3; color: white; }
+        .info { color: #666; font-size: 12px; margin-bottom: 8px; }
+        .hidden { display: none; }
+        #dpCount { font-weight: bold; color: #2196F3; }
+    </style>
+</head>
+<body>
+
+<div class="section">
+    <h3>🤖 LLM Backend</h3>
+    <div class="row">
+        <div class="col">
+            <label>Backend</label>
+            <select id="llmBackend" onchange="toggleBackend()">
+                <option value="ollama">Ollama (lokal, empfohlen)</option>
+                <option value="openai">OpenAI (Cloud)</option>
+            </select>
+        </div>
+        <div class="col" id="col_ollamaHost">
+            <label>Ollama Host URL</label>
+            <input type="text" id="ollamaHost" placeholder="http://192.168.178.170:11434">
+        </div>
+        <div class="col" id="col_ollamaModel">
+            <label>Ollama Modell</label>
+            <input type="text" id="ollamaModel" placeholder="phi4-mini" value="phi4-mini">
+        </div>
+        <div class="col hidden" id="col_openaiKey">
+            <label>OpenAI API Key</label>
+            <input type="password" id="openaiApiKey">
+        </div>
+        <div class="col hidden" id="col_openaiModel">
+            <label>OpenAI Modell</label>
+            <select id="openaiModel">
+                <option value="gpt-4o-mini">GPT-4o mini (günstig)</option>
+                <option value="gpt-4o">GPT-4o (besser)</option>
+            </select>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <label>Max. Tokens</label>
+            <input type="number" id="maxTokens" min="500" max="4000" value="1500">
+        </div>
+        <div class="col">
+            <label>Timeout (Sekunden)</label>
+            <input type="number" id="timeoutSeconds" min="60" max="600" value="300">
+        </div>
+        <div class="col">
+            <label>Analyse-Intervall</label>
+            <select id="analysisIntervalHours">
+                <option value="1">Jede Stunde</option>
+                <option value="3">Alle 3 Stunden</option>
+                <option value="6">Alle 6 Stunden (empfohlen)</option>
+                <option value="24">Einmal täglich</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h3>📡 Datenpunkte <span id="dpCount"></span></h3>
+    <p class="info">Datenpunkte die der Adapter überwacht und an die KI übergibt. Automatische Erkennung findet die relevantesten States.</p>
+    <div style="margin-bottom:10px;">
+        <label><input type="checkbox" id="autoDiscover"> Automatische Erkennung beim nächsten Start</label>
+    </div>
+    <button class="btn btn-add" onclick="addRow()">+ Zeile hinzufügen</button>
+    &nbsp;
+    <table id="dpTable">
+        <thead>
+            <tr>
+                <th style="width:35%">Datenpunkt ID</th>
+                <th style="width:25%">Bezeichnung</th>
+                <th style="width:20%">Kategorie</th>
+                <th style="width:10%">Einheit</th>
+                <th style="width:10%">Löschen</th>
+            </tr>
+        </thead>
+        <tbody id="dpBody"></tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h3>🔔 Benachrichtigungen</h3>
+    <div class="row">
+        <div class="col">
+            <label><input type="checkbox" id="notifyTelegram" onchange="toggleTelegram()"> Telegram</label>
+            <input type="text" id="telegramUser" placeholder="Benutzername (leer = alle)" style="display:none">
+        </div>
+        <div class="col">
+            <label><input type="checkbox" id="notifyPushover"> Pushover</label>
+        </div>
+        <div class="col">
+            <label><input type="checkbox" id="notifyEmail" onchange="toggleEmail()"> E-Mail</label>
+            <input type="text" id="emailTo" placeholder="empfaenger@example.com" style="display:none">
+        </div>
+    </div>
+</div>
+
+<script>
+const CATEGORIES = ['power','temperature','heating','water','light','presence','security','solar','other'];
+
+function toggleBackend() {
+    const v = document.getElementById('llmBackend').value;
+    document.getElementById('col_ollamaHost').classList.toggle('hidden', v !== 'ollama');
+    document.getElementById('col_ollamaModel').classList.toggle('hidden', v !== 'ollama');
+    document.getElementById('col_openaiKey').classList.toggle('hidden', v !== 'openai');
+    document.getElementById('col_openaiModel').classList.toggle('hidden', v !== 'openai');
+}
+
+function toggleTelegram() {
+    document.getElementById('telegramUser').style.display =
+        document.getElementById('notifyTelegram').checked ? 'block' : 'none';
+}
+
+function toggleEmail() {
+    document.getElementById('emailTo').style.display =
+        document.getElementById('notifyEmail').checked ? 'block' : 'none';
+}
+
+function addRow(dp) {
+    const tbody = document.getElementById('dpBody');
+    const tr = document.createElement('tr');
+    const catOptions = CATEGORIES.map(c =>
+        `<option value="${c}" ${dp && dp.category === c ? 'selected' : ''}>${c}</option>`
+    ).join('');
+    tr.innerHTML = `
+        <td><input type="text" class="dp-id" value="${dp ? dp.id : ''}" placeholder="adapter.0.device.STATE"></td>
+        <td><input type="text" class="dp-label" value="${dp ? dp.label : ''}" placeholder="Bezeichnung"></td>
+        <td><select class="dp-category">${catOptions}</select></td>
+        <td><input type="text" class="dp-unit" value="${dp ? dp.unit : ''}" placeholder="W"></td>
+        <td><button class="btn btn-del" onclick="this.closest('tr').remove(); updateCount()">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+    updateCount();
+}
+
+function updateCount() {
+    const rows = document.querySelectorAll('#dpBody tr').length;
+    document.getElementById('dpCount').textContent = `(${rows} Datenpunkte)`;
+}
+
+function getDatapoints() {
+    const rows = document.querySelectorAll('#dpBody tr');
+    const result = [];
+    rows.forEach(tr => {
+        const id = tr.querySelector('.dp-id').value.trim();
+        if (!id) return;
+        result.push({
+            id,
+            label: tr.querySelector('.dp-label').value.trim() || id.split('.').pop(),
+            category: tr.querySelector('.dp-category').value,
+            unit: tr.querySelector('.dp-unit').value.trim(),
+        });
+    });
+    return result;
+}
+
+// ioBroker Admin integration
+function load(settings, onChange) {
+    if (!settings) return;
+
+    // LLM settings
+    document.getElementById('llmBackend').value = settings.llmBackend || 'ollama';
+    document.getElementById('ollamaHost').value = settings.ollamaHost || 'http://localhost:11434';
+    document.getElementById('ollamaModel').value = settings.ollamaModel || 'phi4-mini';
+    document.getElementById('openaiApiKey').value = settings.openaiApiKey || '';
+    document.getElementById('openaiModel').value = settings.openaiModel || 'gpt-4o-mini';
+    document.getElementById('maxTokens').value = settings.maxTokens || 1500;
+    document.getElementById('timeoutSeconds').value = settings.timeoutSeconds || 300;
+    document.getElementById('analysisIntervalHours').value = settings.analysisIntervalHours || 6;
+    document.getElementById('autoDiscover').checked = settings.autoDiscover !== false;
+    toggleBackend();
+
+    // Datapoints
+    const tbody = document.getElementById('dpBody');
+    tbody.innerHTML = '';
+    try {
+        const dps = settings.datapointsJson
+            ? (typeof settings.datapointsJson === 'string'
+                ? JSON.parse(settings.datapointsJson)
+                : settings.datapointsJson)
+            : [];
+        dps.forEach(dp => addRow(dp));
+    } catch(e) {
+        console.error('Error parsing datapoints:', e);
+    }
+    updateCount();
+
+    // Notifications
+    document.getElementById('notifyTelegram').checked = !!settings.notifyTelegram;
+    document.getElementById('telegramUser').value = settings.telegramUser || '';
+    document.getElementById('notifyPushover').checked = !!settings.notifyPushover;
+    document.getElementById('notifyEmail').checked = !!settings.notifyEmail;
+    document.getElementById('emailTo').value = settings.emailTo || '';
+    toggleTelegram();
+    toggleEmail();
+
+    // Watch for changes
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('change', onChange);
+        el.addEventListener('input', onChange);
+    });
+}
+
+function save(callback) {
+    callback({
+        llmBackend:            document.getElementById('llmBackend').value,
+        ollamaHost:            document.getElementById('ollamaHost').value,
+        ollamaModel:           document.getElementById('ollamaModel').value,
+        openaiApiKey:          document.getElementById('openaiApiKey').value,
+        openaiModel:           document.getElementById('openaiModel').value,
+        maxTokens:             parseInt(document.getElementById('maxTokens').value) || 1500,
+        timeoutSeconds:        parseInt(document.getElementById('timeoutSeconds').value) || 300,
+        analysisIntervalHours: parseInt(document.getElementById('analysisIntervalHours').value) || 6,
+        autoDiscover:          document.getElementById('autoDiscover').checked,
+        datapointsJson:        JSON.stringify(getDatapoints()),
+        autoDiscoveryDone:     false,
+        notifyTelegram:        document.getElementById('notifyTelegram').checked,
+        telegramUser:          document.getElementById('telegramUser').value,
+        notifyPushover:        document.getElementById('notifyPushover').checked,
+        notifyEmail:           document.getElementById('notifyEmail').checked,
+        emailTo:               document.getElementById('emailTo').value,
+    });
+}
+</script>
+</body>
+</html>
