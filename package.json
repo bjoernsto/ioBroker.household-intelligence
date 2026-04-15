@@ -1,6 +1,6 @@
 {
   "name": "iobroker.household-intelligence",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-powered smart home analysis adapter for ioBroker with local LLM (Ollama) and OpenAI support",
   "author": {
     "name": "ioBroker Community",
@@ -8,7 +8,15 @@
   },
   "homepage": "https://github.com/bjoernsto/ioBroker.household-intelligence",
   "license": "MIT",
-  "keywords": ["ioBroker", "smarthome", "AI", "LLM", "Ollama", "energy", "automation"],
+  "keywords": [
+    "ioBroker",
+    "smarthome",
+    "AI",
+    "LLM",
+    "Ollama",
+    "energy",
+    "automation"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bjoernsto/ioBroker.household-intelligence.git"
