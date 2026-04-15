@@ -26,8 +26,8 @@
         },
         "ollamaModel": {
           "type": "text",
-          "label": "Ollama Modell (z.B. mistral, llama3, phi4-mini)",
-          "default": "mistral",
+          "label": "Ollama Modell (z.B. phi4-mini, mistral, llama3)",
+          "default": "phi4-mini",
           "hidden": "data.llmBackend !== 'ollama'",
           "sm": 12,
           "newLine": true
@@ -87,21 +87,33 @@
       "type": "panel",
       "label": "Datenpunkte",
       "items": {
-        "_dpHelp": {
+        "_infoText": {
           "type": "staticText",
-          "text": "Trage hier deine Datenpunkte als JSON ein. Format: [{\"id\":\"hm-rpc.0.sensor.TEMPERATURE\",\"label\":\"Wohnzimmer Temp\",\"category\":\"temperature\",\"unit\":\"°C\"}]",
+          "text": "Der Adapter erkennt relevante Datenpunkte automatisch beim ersten Start. Du kannst die Erkennung auch manuell anstoßen oder die Datenpunkte manuell als JSON eingeben.",
           "sm": 12
+        },
+        "autoDiscover": {
+          "type": "checkbox",
+          "label": "Automatische Erkennung beim Start aktivieren",
+          "default": true,
+          "sm": 12,
+          "newLine": true
+        },
+        "_manualHeader": {
+          "type": "staticText",
+          "text": "Manuelle Datenpunkte (optional, überschreibt automatische Erkennung):",
+          "sm": 12,
+          "newLine": true
         },
         "datapointsJson": {
           "type": "jsonEditor",
-          "label": "Datenpunkte (JSON)",
+          "label": "Datenpunkte JSON (leer lassen für automatische Erkennung)",
           "sm": 12,
-          "newLine": true,
-          "height": 300
+          "newLine": true
         },
-        "_dpExample": {
+        "_exampleText": {
           "type": "staticText",
-          "text": "Kategorien: power, temperature, heating, water, light, presence, security, solar, other",
+          "text": "Format: [{\"id\":\"shelly.0.xxx.Power\",\"label\":\"Strom Wohnzimmer\",\"category\":\"power\",\"unit\":\"W\"}]  |  Kategorien: power, temperature, heating, water, light, presence, security, solar, other",
           "sm": 12,
           "newLine": true
         }

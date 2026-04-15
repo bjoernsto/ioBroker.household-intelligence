@@ -60,14 +60,9 @@
     "notifyEmail": false,
     "telegramUser": "",
     "emailTo": "",
-    "datapoints": [
-      {
-        "id": "",
-        "label": "Beispiel Temperatur",
-        "category": "temperature",
-        "unit": "°C"
-      }
-    ]
+    "autoDiscover": true,
+    "autoDiscoveryDone": false,
+    "datapointsJson": ""
   },
   "objects": [],
   "instanceObjects": [
